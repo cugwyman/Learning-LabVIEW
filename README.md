@@ -1,5 +1,5 @@
-#旋翼无人机航磁系统数据采集软件
-###梁植源
+﻿# 旋翼无人机航磁系统数据采集软件
+### 梁植源
 # 第一章 系统架构
 ## 1.1设计要求
 1. 利用LabVIEW控制单片机采集旋翼无人机姿态数据（需要实际采集）、校正前地磁总场（利用单片机模拟）数据、GPS数据（利用单片机模拟），并用串口传输至上位机。
@@ -18,7 +18,7 @@
 # 第二章 硬件设计
 本系统硬件部分采用STM32F4开发板，板载MPU6050六轴姿态传感器及CH340串口转USB芯片。磁场强度和GPS数据采用单片机模拟，故不需要其他的传感器。
 其中用于姿态采集的MPU6050的电路原理图如图3-1所示：
- ![enter image description here](http://p4qmsw1ul.bkt.clouddn.com/MPU6050%E5%8E%9F%E7%90%86%E5%9B%BE.jpg)
+![enter image description here](http://p4qmsw1ul.bkt.clouddn.com/MPU6050%E5%8E%9F%E7%90%86%E5%9B%BE.jpg)
 图2-1 MPU6050原理图
 # 第三章 软件设计
 ## 3.1 单片机程序设计
@@ -37,13 +37,12 @@
 根据欧拉旋转定理，任何两个坐标系的相对定向，可以由一组四个数字来设定；其中三个数字是方向余弦，用来设定特征矢量（固定轴）；第四个数字是绕着固定轴旋转的角值。这样四个数字的一组称为四元数。
 确定导弹（或飞机）在空间中的方向需要用三个角度，分别为偏航角、俯仰角和滚转角，这三个角度通常称为欧拉角，或弹体的姿态角。这三个角度是地面坐标系与弹体坐标系之间的角度关系，即地面坐标系经过三次旋转即可转到弹体坐标系。
 5. 姿态解算流程如下图：
- ![enter image description here](http://p4qmsw1ul.bkt.clouddn.com/%E5%A7%BF%E6%80%81%E8%A7%A3%E7%AE%97%E6%B5%81%E7%A8%8B%E5%9B%BE.jpg)
+![enter image description here](http://p4qmsw1ul.bkt.clouddn.com/%E5%A7%BF%E6%80%81%E8%A7%A3%E7%AE%97%E6%B5%81%E7%A8%8B%E5%9B%BE.jpg)
 图3-1姿态解算流程图
-###3.1.3姿态角获取
+### 3.1.3姿态角获取
 为了获得无人机的姿态数据，即欧拉角：航向角（yaw）、横滚角（roll）和俯仰角（pitch），首先利用MPU6050六轴姿态传感器产生陀螺仪及加速度计原始数据，然后利用MPU6050自带了数字运动处理器，即DMP进行姿态融合解算及滤波，将原始数据转换成四元数输出，最后通过算法计算出欧拉角。
 使用内置的DMP，可以大大简化代码设计，MCU不用进行姿态解算过程，大大降低了MCU的负担，从而有更多的时间去处理其他事件，提高系统实时性。同时，DMP可进行滤波处理，输出数据较稳定。
 MPU6050 DMP输出的是姿态解算后的四元数，采用q30格式，也就是放大了2的30次方，我们要得到欧拉角，就得做一个转换，代码如下：
-   
 
       q0=quat[0] / q30;	//q30格式转换为浮点数
       q1=quat[1] / q30;
@@ -52,53 +51,53 @@ MPU6050 DMP输出的是姿态解算后的四元数，采用q30格式，也就是
       //计算得到俯仰角/横滚角/航向角
       pitch=asin(-2 * q1 * q3 + 2 * q0* q2)* 57.3; //俯仰角
       roll=atan2(2 * q2 * q3 + 2 * q0 * q1, -2 * q1 * q1 - 2 * q2* q2 + 1)* 57.3;//横滚角
-      yaw=atan2(2*(q1*q2 + q0*q3),q0*q0+q1*q1-q2*q2-q3*q3) * 57.3;//航向角
+      yaw=atan2(2*(q1*q2 + q0*q3),q0*q0+q1*q1-q2*q2-q3*q3) * 57.3;  //航向角
 
 quat[0]~quat[3]：是MPU6050的DMP解算后的四元数，q30格式。 
 q30：是一个常量：1073741824，即2的30次方。 
 57.3：是弧度转换为角度，即180/π，这样结果就是以度（°）为单位的。
-###3.1.4数据模拟
+### 3.1.4数据模拟
 创建保存磁场强度数据的数组，通过for循环进行赋值。创建代表经纬度的变量，通过while循环进行数据修改。
-###3.1.5串口发送
+### 3.1.5串口发送
 在STM32中，配置好串口引脚和波特率后，使用printf函数发送数据，数据之间用逗号隔开以方便上位机拆分，并以换行符“\n”作为一组数据的结束标志。
 每组数据包含三个姿态角数据、一组经纬度数据和一个磁场强度原始数据。
-##3.2 LabVIEW上位机设计
-###3.2.1串口配置
+## 3.2 LabVIEW上位机设计
+### 3.2.1串口配置
 使用簇来打包拆分串口设置的相关参数，如波特率、数据位、校验位、停止位等。获取（读取）和设置（写入）引用的属性。通过属性节点对本地或远程应用程序实例、VI或对象获取或设置属性和方法也可通过属性节点发访问LabVIEW类的私有数据。属性节点可自动调整为用户所引用的对象的类。如本次需访问的VISA属性。
 设置的串口参数必须匹配连接仪器或设备的参数。 “读数”参数可指定串口读取的字节数。如端口字节超过指定的字节数，超出部分将不会被读取。如端口字节数少于指定的字节数，将返回超时错误。
- ![enter image description here](http://p4qmsw1ul.bkt.clouddn.com/%E4%B8%B2%E5%8F%A3%E9%85%8D%E7%BD%AE.jpg)
+![enter image description here](http://p4qmsw1ul.bkt.clouddn.com/%E4%B8%B2%E5%8F%A3%E9%85%8D%E7%BD%AE.jpg)
 图3-2串口配置
 利用VISA配置串口，对VISA资源名称，波特率，数据比特，奇偶位，停止位，流控制和VISA资源名称输出和错误输出进行配置。
 配置串口参数后可对串口数据进行读和写，在前面板中以读取和写入按钮来控制。
 对串口的读写操作完成后需要关闭串口，从而释放LabVIEW对这个串口资源的占用。
- ![enter image description here](http://p4qmsw1ul.bkt.clouddn.com/VISA%E9%85%8D%E7%BD%AE.jpg)
+![enter image description here](http://p4qmsw1ul.bkt.clouddn.com/VISA%E9%85%8D%E7%BD%AE.jpg)
 图3-3 VISA串口配置
-###3.2.2字符串截取
+### 3.2.2字符串截取
 从VISA资源名称指定的设备或接口中读取指定数量的字节，并使数据返回至读取缓冲区。同时接控件“扫描输入字符串”，然后依据格式字符串进行转换。明确知道输入的格式时，可使用该函数。单片机打印格式固定为“%d,%d,%d,%d,%d,%d\n”，然后分割成Roll、Yaw、Pitch角及经度、纬度、磁场强度原始数据。
- ![enter image description here](http://p4qmsw1ul.bkt.clouddn.com/%E6%89%AB%E6%8F%8F%E5%AD%97%E7%AC%A6%E4%B8%B2%E7%A8%8B%E5%BA%8F.jpg)
+![enter image description here](http://p4qmsw1ul.bkt.clouddn.com/%E6%89%AB%E6%8F%8F%E5%AD%97%E7%AC%A6%E4%B8%B2%E7%A8%8B%E5%BA%8F.jpg)
 图3-4 扫描字符串程序
-###3.2.3姿态显示
+### 3.2.3姿态显示
 首先通过加载VRML文件创建三维对象。VRML（Virtual Reality Modeling Language）即虚拟现实建模语言。是一种用于建立真实世界的场景模型或人们虚构的三维世界的场景建模语言，也具有平台无关性。将其引入LabVIEW界面可获得极其真实且精美的3D效果，适用于相对比较复杂的图形显示，我们使用Solidworks设计的四旋翼飞行器3D模型效果如下图所示。
 ![enter image description here](http://p4qmsw1ul.bkt.clouddn.com/%E5%9B%9B%E6%97%8B%E7%BF%BC3D%E5%BB%BA%E6%A8%A1.jpg)
 图3-5 四旋翼3D建模及显示图
 然后利用三维图片控件中的变形，对创建的对象进行平移与旋转，输入的是绝对量，设置变化量直接体现在图片显示中。
 为了比较明显地表示出相对变化情况，创建坐标轴作为基准参考量，将坐标轴作为父对象基准，磁场传感器作为子对象。
 
-###3.2.4磁场校正	
+### 3.2.4磁场校正	
 由于LabVIEW主要定位是可视化编程，面对复杂的计算，我们倾向于调用API接口来运算。本设计，我们调用LabVIEW的MATLAB脚本，输入校正程序，连接输入输出变量，然后通过数组插入控件，输入到波形图显示校正前后磁场强度。
- ![enter image description here](http://p4qmsw1ul.bkt.clouddn.com/MATLAB%E6%8F%92%E4%BB%B6.jpg)
+![enter image description here](http://p4qmsw1ul.bkt.clouddn.com/MATLAB%E6%8F%92%E4%BB%B6.jpg)
 图3-6 MATLAB插件
 校正前后波形图如下图所示。经过校正后的磁场与正常磁场强度大小相差很小，几乎不会受磁场异常干扰的影响，而未经校正的磁场强度则受干扰信号的影响很大，远远偏离正常磁场强度。
- ![enter image description here](http://p4qmsw1ul.bkt.clouddn.com/%E6%A0%A1%E6%AD%A3%E5%89%8D%E5%90%8E%E6%B3%A2%E5%BD%A2%E5%AF%B9%E6%AF%94.jpg)
+![enter image description here](http://p4qmsw1ul.bkt.clouddn.com/%E6%A0%A1%E6%AD%A3%E5%89%8D%E5%90%8E%E6%B3%A2%E5%BD%A2%E5%AF%B9%E6%AF%94.jpg)
 图3-7 校正前后波形对比
-###3.2.5飞行轨迹地图显示
+### 3.2.5飞行轨迹地图显示
 本系统的飞行轨迹地图显示采用百度地图。利用百度地图静态图API可以在LabVIEW中加载百度地图。
 静态图API是百度地图Web服务API中的一种，它根据所设定的参数，通过标准HTTP协议，返回PNG格式的地图图片。通过给<img>标签设置src属性即可将地图图片显示在网页中。用户可以指定图片的尺寸、地图的显示范围（包含中心点和缩放级别），还可以放置一些覆盖物在地图上，以生成符合需求的地图图片。
 百度地图静态图API，可实现将百度地图以图片形式嵌入到网页中。只需在LabVIEW中发送HTTP请求访问百度地图静态图服务，便可在网页上以图片形式显示地图。静态图API较之JavaScript API载入的动态网站，既能满足基本的地图信息浏览，又能加快网页访问速度。
 本次设计,利用单片机模拟四旋翼飞行器在广州上方环行的GPS数据,并通过串口发送到LabVIEW, 调用静态百度地图API，输入串口读取的经纬度后，将所有字符串连接作为URL访问，通过WebBrowser控件显示飞行轨迹如下图。
- ![enter image description here](http://p4qmsw1ul.bkt.clouddn.com/%E9%A3%9E%E8%A1%8C%E8%BD%A8%E8%BF%B9%E6%98%BE%E7%A4%BA.jpg)
+![enter image description here](http://p4qmsw1ul.bkt.clouddn.com/%E9%A3%9E%E8%A1%8C%E8%BD%A8%E8%BF%B9%E6%98%BE%E7%A4%BA.jpg)
 图3-8 飞行轨迹显示
-#第四章 问题与解决
+# 第四章 问题与解决
 1. LabVIEW对接收的数据进行拆分时，使用截取字节方式读取，截取的结果会发生错位。
 单片机中使用printf函数发送数据时，是先将各种格式的数据转换成char型发送。因此数据的大小不同会使发送数据的字节数不同。例如short型数字1和100都是是两个字节， 而发送时分别是一个字节及三个字节。为了解决这个问题，我们换了一种拆分数据的方法，改为使用扫描字符串函数，格式化读取数据“%d，%d，%d，%d，%d，%d\n”可行。
 2. 拆分的数据出现“错位”，例如最后一个数据可能会输出为第一个数据。
@@ -112,10 +111,10 @@ q30：是一个常量：1073741824，即2的30次方。
 - LabVIEW部分工程较大，建模较多，占内存较多。若只发送姿态角跟随会很快。
 最终运行结果如下图：
  
- ![enter image description here](http://p4qmsw1ul.bkt.clouddn.com/%E7%A8%8B%E5%BA%8F%E8%BF%90%E8%A1%8C%E7%95%8C%E9%9D%A2.jpg)
+![enter image description here](http://p4qmsw1ul.bkt.clouddn.com/%E7%A8%8B%E5%BA%8F%E8%BF%90%E8%A1%8C%E7%95%8C%E9%9D%A2.jpg)
 图4-1 程序运行界面
 
-#第五章《虚拟仪器》课程学习的问题及解决
+# 第五章《虚拟仪器》课程学习的问题及解决
 1. 串口发送时LabVIEW报错:  输入参数无效。例如，输入路径可能包含操作系统不允许用于路径的字符（例如，?或@）。
 所要打开的端口被占用了（例如：你前面运行LabVIEW的时候打开端口后，使用完了没有关闭端口就直接退出来了）。应该先关闭端口。
 2. 曲线拟合波形出错。
